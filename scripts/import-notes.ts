@@ -148,6 +148,49 @@ const DATA: Exercise[] = [
     ],
   },
 
+  // ─── BAS B ───
+  {
+    name: "Presse à cuisses", template: "Lower B", entries: [
+      { n: 1, sets: same(4, 5, 360) },
+      { n: 2, sets: same(4, 5, 450) },
+      { n: 3, sets: same(2, 5, 540) },
+    ],
+  },
+  {
+    name: "Fentes bulgares", template: "Lower B", entries: [
+      { n: 1, sets: same(3, 10, 80) },
+      { n: 2, sets: same(3, 10, 90) },
+      { n: 3, sets: same(3, 8, 90) },
+      { n: 4, sets: same(3, 8, 90) },
+      { n: 5, sets: same(2, 8, 100) },
+      { n: 6, sets: rw([8, 110], [8, 100]) },
+    ],
+  },
+  { name: "Copenhague", template: "Lower B", entries: [{ n: 1, sets: bw(0, 6, 6) }] },
+  {
+    name: "Curl ischio iso 4 s", template: "Lower B", entries: [
+      { n: 1, sets: rw([6, 90], [6, 75], [6, 75]) },
+      { n: 2, sets: rw([6, 90], [6, 75], [6, 75]) },
+      { n: 3, sets: same(3, 6, 90) },
+      { n: 4, sets: same(2, 6, 105) },
+      { n: 5, sets: rw([6, 120], [5, 120], [4, 120]) },
+    ],
+  },
+  {
+    name: "Mollets assis", template: "Lower B", entries: [
+      { n: 1, sets: same(4, 15, 35) },
+      { n: 2, sets: same(4, 15, 70) },
+      { n: 3, sets: same(3, 12, 80) },
+      { n: 4, sets: rw([22, 90], [12, 90], [12, 90]) },
+    ],
+  },
+  {
+    name: "RDL", template: "Lower B", entries: [
+      { n: 1, sets: same(4, 8, 115) },
+      { n: 2, sets: rw([10, 135], [10, 155], [8, 155], [10, 155]) },
+    ],
+  },
+
   // ─── HAUT B ───
   {
     name: "Développé couché", template: "Upper B", entries: [
@@ -218,7 +261,7 @@ const DATA: Exercise[] = [
 ];
 
 // Dernière séance de chaque type (semaine du 16 nov. 2026, rythme Upper/Lower).
-const LAST: Record<string, string> = { "Upper A": "2026-11-16", "Lower A": "2026-11-17", "Upper B": "2026-11-12" };
+const LAST: Record<string, string> = { "Upper A": "2026-11-16", "Lower A": "2026-11-17", "Upper B": "2026-11-12", "Lower B": "2026-11-13" };
 
 function addDays(iso: string, n: number) {
   const d = new Date(iso + "T12:00:00Z");
