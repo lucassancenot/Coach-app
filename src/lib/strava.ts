@@ -5,10 +5,20 @@ import { decoupling, edwardsTrimp, trimpFromAverage, zoneSeconds } from "./metri
 
 const API = "https://www.strava.com/api/v3";
 
+/**
+ * Adresse publique de l'app. Strava n'accepte qu'un seul domaine de retour : on utilise
+ * toujours le domaine de production, même si l'app est ouverte via une URL de déploiement.
+ */
+export function appOrigin(fallback: string): string {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  return fallback;
+}
+
 export function authorizeUrl(origin: string): string {
   const p = new URLSearchParams({
     client_id: process.env.STRAVA_CLIENT_ID!,
-    redirect_uri: `${origin}/api/auth/callback`,
+    redirect_uri: `${appOrigin(origin)}/api/auth/callback`,
     response_type: "code",
     approval_prompt: "auto",
     scope: "read,activity:read_all",
