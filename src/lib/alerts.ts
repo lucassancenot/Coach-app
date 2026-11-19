@@ -3,6 +3,7 @@ import { db, schema } from "@/db";
 import { addDays, mondayOf, prettyDate, today } from "./dates";
 import { acwr, e1rm, intensityDistribution, trimpFromAverage } from "./metrics";
 import { phaseFor, weekPlan } from "./plan";
+import { asUnit, fromKg } from "./units";
 import { getActivities, getAthlete, getWorkouts, MAIN_LIFTS } from "./data";
 
 type Severity = "info" | "warn" | "stop";
@@ -21,6 +22,7 @@ export async function evaluateAlerts(): Promise<number> {
   const athlete = await getAthlete();
   const now = today();
   const ctx = { hrMax: athlete.hrMax, vift: athlete.vift };
+  const unit = asUnit(athlete.unit);
   const acts = await getActivities(60);
   const runs = acts.filter((a) => a.type === "Run" || a.type === "TrailRun" || a.type === "VirtualRun");
   const workouts = await getWorkouts(60);
@@ -93,7 +95,7 @@ export async function evaluateAlerts(): Promise<number> {
           key: `stall-${lift}-${week}`,
           severity: "warn",
           title: `${lift} : pas de progrès sur 3 séances`,
-          message: `Meilleur 1RM estimé récent ${Math.max(...last3)} kg contre ${before} kg avant. Fais 1 semaine à -10 % sur cet exercice, puis repars avec des séries de 4 répétitions à RIR 2. Si ça bloque encore, vérifie ton sommeil et tes apports (≥ 1,6 g de protéines/kg/j, Morton 2018).`,
+          message: `Meilleur 1RM estimé récent ${fromKg(Math.max(...last3), unit)} ${unit} contre ${fromKg(before, unit)} ${unit} avant. Fais 1 semaine à -10 % sur cet exercice, puis repars avec des séries de 4 répétitions à RIR 2. Si ça bloque encore, vérifie ton sommeil et tes apports (≥ 1,6 g de protéines/kg/j, Morton 2018).`,
         });
       }
     }

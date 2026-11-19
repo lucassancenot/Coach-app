@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { aiEnabled } from "@/lib/coach";
-import { getTemplates, getWorkouts, MAIN_LIFTS } from "@/lib/data";
+import { getAthlete, getTemplates, getWorkouts, MAIN_LIFTS } from "@/lib/data";
+import { asUnit, fromKg } from "@/lib/units";
 import { prettyDate } from "@/lib/dates";
 import { e1rm } from "@/lib/metrics";
 import { deleteWorkout } from "@/app/actions";
@@ -13,7 +14,8 @@ export const dynamic = "force-dynamic";
 export default async function SallePage({ searchParams }: { searchParams: Promise<{ lift?: string; saved?: string }> }) {
   await requireAuth();
   const { lift: liftParam, saved } = await searchParams;
-  const [templates, workouts] = await Promise.all([getTemplates(), getWorkouts(365)]);
+  const [templates, workouts, athlete] = await Promise.all([getTemplates(), getWorkouts(365), getAthlete()]);
+  const unit = asUnit(athlete.unit);
   const lift = liftParam && MAIN_LIFTS.includes(liftParam) ? liftParam : MAIN_LIFTS[0];
 
   const series = [...workouts]
@@ -21,7 +23,7 @@ export default async function SallePage({ searchParams }: { searchParams: Promis
     .map((w) => {
       const s = w.sets.filter((x) => x.exercise === lift);
       if (!s.length) return null;
-      return { label: `${Number(w.date.slice(8, 10))}/${Number(w.date.slice(5, 7))}`, value: Math.max(...s.map((x) => e1rm(x.weight, x.reps, x.rir))) };
+      return { label: `${Number(w.date.slice(8, 10))}/${Number(w.date.slice(5, 7))}`, value: fromKg(Math.max(...s.map((x) => e1rm(x.weight, x.reps, x.rir))), unit) };
     })
     .filter((x): x is { label: string; value: number } => x != null);
 
@@ -29,7 +31,7 @@ export default async function SallePage({ searchParams }: { searchParams: Promis
     const all = workouts.flatMap((w) => w.sets.filter((s) => s.exercise === ex).map((s) => ({ ...s, date: w.date })));
     if (!all.length) return null;
     const best = all.reduce((a, b) => (e1rm(b.weight, b.reps, b.rir) > e1rm(a.weight, a.reps, a.rir) ? b : a));
-    return { ex, best, est: e1rm(best.weight, best.reps, best.rir) };
+    return { ex, best, est: fromKg(e1rm(best.weight, best.reps, best.rir), unit) };
   }).filter((x) => x != null);
 
   return (
@@ -61,7 +63,7 @@ export default async function SallePage({ searchParams }: { searchParams: Promis
             </Link>
           ))}
         </div>
-        {series.length >= 2 ? <LineSeries data={series} color="var(--gym)" unit="kg" /> : <p className="py-6 text-center text-sm text-muted">Pas encore assez de séances pour {lift}.</p>}
+        {series.length >= 2 ? <LineSeries data={series} color="var(--gym)" unit={unit} /> : <p className="py-6 text-center text-sm text-muted">Pas encore assez de séances pour {lift}.</p>}
         <p className="text-[11px] text-muted">Epley corrigé par le RIR (Helms 2016). Fiable jusqu&apos;à ~10 répétitions effectives.</p>
       </section>
 
@@ -74,10 +76,10 @@ export default async function SallePage({ searchParams }: { searchParams: Promis
                 <tr key={r.ex} className="border-b border-border last:border-0">
                   <td className="py-2">{r.ex}</td>
                   <td className="py-2 text-right text-muted">
-                    {r.best.weight}×{r.best.reps}
+                    {fromKg(r.best.weight, unit)}×{r.best.reps}
                     {r.best.rir != null ? ` @${r.best.rir}` : ""}
                   </td>
-                  <td className="py-2 text-right font-semibold">{r.est} kg</td>
+                  <td className="py-2 text-right font-semibold">{r.est} {unit}</td>
                 </tr>
               ))}
             </tbody>
@@ -106,7 +108,7 @@ export default async function SallePage({ searchParams }: { searchParams: Promis
               <ul className="mt-2 space-y-0.5 text-sm text-text-2 tabular-nums">
                 {[...byEx].map(([ex, ss]) => (
                   <li key={ex}>
-                    <span className="text-text">{ex}</span> {ss.map((s) => `${s.weight}×${s.reps}${s.rir != null ? `@${s.rir}` : ""}`).join(", ")}
+                    <span className="text-text">{ex}</span> {ss.map((s) => `${fromKg(s.weight, unit)}×${s.reps}${s.rir != null ? `@${s.rir}` : ""}`).join(", ")}
                   </li>
                 ))}
               </ul>

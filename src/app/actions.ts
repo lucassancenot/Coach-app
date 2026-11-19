@@ -92,6 +92,7 @@ export async function saveSettings(formData: FormData) {
     .set({
       hrMax: hrMax > 150 && hrMax < 230 ? hrMax : athlete.hrMax,
       hrRest: hrRest > 30 && hrRest < 100 ? hrRest : athlete.hrRest,
+      unit: formData.get("unit") === "lb" ? "lb" : "kg",
     })
     .where(eq(schema.athlete.id, athlete.id));
   revalidatePath("/", "layout");

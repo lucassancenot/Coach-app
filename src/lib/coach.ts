@@ -5,6 +5,7 @@ import { db, schema } from "@/db";
 import { addDays, formatDuration, formatPace, prettyDate, RETURN, daysBetween, today } from "./dates";
 import { acwr, e1rm, intensityDistribution, trimpFromAverage } from "./metrics";
 import { phaseWeek, weekPlan, zones } from "./plan";
+import { asUnit, fromKg } from "./units";
 import { getActiveAlerts, getActivities, getAthlete, getTests, getWorkouts, MAIN_LIFTS } from "./data";
 
 const MODEL = "claude-opus-5-5";
@@ -17,7 +18,7 @@ const SYSTEM = `Tu es le coach de préparation physique d'un footballeur (latér
 
 Style :
 - Direct, en français, tutoiement. Court : 3 à 8 lignes sauf si on te demande plus.
-- Chiffré : FC en bpm, allures, charges en kg, RIR, distances. Jamais de conseil vague.
+- Chiffré : FC en bpm, allures, charges dans l'unité de l'athlète (indiquée dans les données), RIR, distances. Jamais de conseil vague.
 - Pas de félicitations ni de formules creuses. Si tout est conforme, dis-le en une phrase et passe à la suite.
 - Si quelque chose ne va pas, dis-le clairement et donne l'ajustement précis.
 
@@ -33,6 +34,7 @@ export async function buildContext(): Promise<string> {
   const now = today();
   const ctx = { hrMax: athlete.hrMax, vift: athlete.vift };
   const z = zones(athlete.hrMax);
+  const unit = asUnit(athlete.unit);
   const { phase, week, totalWeeks } = phaseWeek(now);
   const acts = await getActivities(42);
   const workouts = await getWorkouts(42);
@@ -58,7 +60,7 @@ export async function buildContext(): Promise<string> {
       const byEx = new Map<string, string[]>();
       for (const s of w.sets) {
         const arr = byEx.get(s.exercise) ?? [];
-        arr.push(`${s.weight}×${s.reps}${s.rir != null ? `@RIR${s.rir}` : ""}`);
+        arr.push(`${fromKg(s.weight, unit)}×${s.reps}${s.rir != null ? `@RIR${s.rir}` : ""}`);
         byEx.set(s.exercise, arr);
       }
       const ex = [...byEx].map(([k, v]) => `${k} ${v.join(", ")}`).join(" | ");
@@ -68,7 +70,7 @@ export async function buildContext(): Promise<string> {
 
   const best = MAIN_LIFTS.map((lift) => {
     const all = workouts.flatMap((w) => w.sets.filter((s) => s.exercise === lift).map((s) => e1rm(s.weight, s.reps, s.rir)));
-    return all.length ? `${lift} ${Math.max(...all)} kg` : null;
+    return all.length ? `${lift} ${fromKg(Math.max(...all), unit)} ${unit}` : null;
   })
     .filter(Boolean)
     .join(", ");
@@ -80,7 +82,7 @@ export async function buildContext(): Promise<string> {
 
   return `Date du jour : ${prettyDate(now)} (${now}). Retour à Montréal dans ${daysBetween(now, RETURN)} jours (8 mai 2027). Échange à Singapour du 4 janv. au 8 mai 2027 (chaleur 27-32 °C, ~80 % d'humidité).
 
-Profil : FCmax ${athlete.hrMax}, FC repos ${athlete.hrRest}. VIFT 30-15 : ${athlete.vift ?? "pas encore testée"}. Salle 4×/sem en Upper/Lower (A/B), course 2×/sem en phase de force. Aucune blessure déclarée.
+Profil : FCmax ${athlete.hrMax}, FC repos ${athlete.hrRest}. VIFT 30-15 : ${athlete.vift ?? "pas encore testée"}. Salle 4×/sem en Upper/Lower (A/B), course 2×/sem en phase de force. Aucune blessure déclarée, mais il a noté des « petites douleurs » ponctuelles (hip thrust lourd, curl ischio, dips) : à surveiller. Unité des charges : ${unit}.
 Zones FC : Z1 ${z.z1.join("-")}, Z2 ${z.z2.join("-")}, Z3 ${z.z3.join("-")}, Z4 ${z.z4.join("-")}, Z5 ${z.z5.join("-")} ; 4×4 Helgerud ${z.helgerud.join("-")}.
 
 Phase : ${phase.name}, semaine ${week}${totalWeeks ? `/${totalWeeks}` : ""}. Objectif : ${phase.goal}

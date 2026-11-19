@@ -23,6 +23,14 @@ export default async function ReglagesPage() {
           <span className="label">FC repos (bpm)</span>
           <input name="hrRest" className="input mt-1" inputMode="numeric" defaultValue={a.hrRest} />
         </label>
+        <label className="block">
+          <span className="label">Unité des charges</span>
+          <select name="unit" className="input mt-1" defaultValue={a.unit}>
+            <option value="lb">Livres (lb)</option>
+            <option value="kg">Kilos (kg)</option>
+          </select>
+          <span className="mt-1 block text-[11px] text-muted">Change à tout moment : l&apos;historique est converti automatiquement.</span>
+        </label>
         <button className="btn w-full">Enregistrer</button>
       </form>
 

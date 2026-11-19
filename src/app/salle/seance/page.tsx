@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { getTemplates, getWorkouts } from "@/lib/data";
 import { today } from "@/lib/dates";
 import { targetFor } from "@/lib/progression";
+import { asUnit } from "@/lib/units";
 import { sessionsFor } from "@/lib/plan";
 import { getAthlete } from "@/lib/data";
 import WorkoutLogger from "@/components/WorkoutLoggerClient";
@@ -19,7 +20,8 @@ export default async function SeancePage({ searchParams }: { searchParams: Promi
   const now = today();
   const planned = sessionsFor(now, { hrMax: athlete.hrMax, vift: athlete.vift }).find((s) => s.template === t.name);
 
-  const items = t.items.map((item) => ({ ...item, target: targetFor(item, workouts, now) }));
+  const unit = asUnit(athlete.unit);
+  const items = t.items.map((item) => ({ ...item, target: targetFor(item, workouts, now, unit) }));
 
   return (
     <>
@@ -34,7 +36,7 @@ export default async function SeancePage({ searchParams }: { searchParams: Promi
           </ul>
         </div>
       )}
-      <WorkoutLogger templateName={t.name} date={now} items={items} otherTemplates={templates.map((x) => x.name)} />
+      <WorkoutLogger templateName={t.name} date={now} items={items} unit={unit} otherTemplates={templates.map((x) => x.name)} />
     </>
   );
 }

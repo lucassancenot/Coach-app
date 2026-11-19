@@ -43,7 +43,17 @@ export const DEFAULT_TEMPLATES: { name: string; items: TemplateItem[] }[] = [
   { name: "Lower B", items: LOWER },
 ];
 
-export const MAIN_LIFTS = ["Chest press", "Tractions lestées", "Développé militaire", "Hack squat", "Hip thrust", "Rowing"];
+export const MAIN_LIFTS = [
+  "Chest press",
+  "Développé couché",
+  "Développé incliné",
+  "Tractions lestées",
+  "Développé militaire",
+  "Rowing",
+  "Hack squat",
+  "Hip thrust",
+  "Curl ischio",
+];
 
 export async function getAthlete() {
   const rows = await db.select().from(schema.athlete).limit(1);

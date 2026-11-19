@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { saveWorkout, type SetInput } from "@/app/actions";
 import type { TemplateItem } from "@/lib/data";
 import type { Target } from "@/lib/progression";
+import { toKg, type Unit } from "@/lib/units";
 
 type Item = TemplateItem & { target: Target };
 interface Row {
@@ -28,7 +29,7 @@ function SetRow({ r, onChange, idx }: { r: Row; onChange: (p: Partial<Row>) => v
   return (
     <div className={`grid grid-cols-[24px_1fr_1fr_1fr_44px] items-center gap-2 ${r.done ? "opacity-100" : "opacity-80"}`}>
       <span className="text-xs text-muted">{idx + 1}</span>
-      <input className="input text-center tabular-nums" inputMode="decimal" value={r.weight} onChange={(e) => onChange({ weight: e.target.value })} aria-label="Charge kg" />
+      <input className="input text-center tabular-nums" inputMode="decimal" value={r.weight} onChange={(e) => onChange({ weight: e.target.value })} aria-label="Charge" />
       <input className="input text-center tabular-nums" inputMode="numeric" value={r.reps} onChange={(e) => onChange({ reps: e.target.value })} aria-label="Répétitions" />
       <select className="input text-center" value={r.rir} onChange={(e) => onChange({ rir: e.target.value })} aria-label="RIR">
         {["0", "1", "2", "3", "4", "5"].map((v) => (
@@ -47,17 +48,17 @@ function SetRow({ r, onChange, idx }: { r: Row; onChange: (p: Partial<Row>) => v
   );
 }
 
-const header = (
+const Header = ({ unit }: { unit: Unit }) => (
     <div className="grid grid-cols-[24px_1fr_1fr_1fr_44px] gap-2 text-[10px] uppercase tracking-wide text-muted">
       <span>#</span>
-      <span className="text-center">kg</span>
+      <span className="text-center">{unit}</span>
       <span className="text-center">reps</span>
       <span className="text-center">RIR</span>
       <span />
     </div>
   );
 
-export default function WorkoutLogger({ templateName, date, items, otherTemplates }: { templateName: string; date: string; items: Item[]; otherTemplates: string[] }) {
+export default function WorkoutLogger({ templateName, date, items, unit, otherTemplates }: { templateName: string; date: string; items: Item[]; unit: Unit; otherTemplates: string[] }) {
   const router = useRouter();
   const storageKey = `draft-${templateName}-${date}`;
   // Brouillon local : rien n'est perdu si le téléphone se verrouille pendant la séance.
@@ -91,7 +92,7 @@ export default function WorkoutLogger({ templateName, date, items, otherTemplate
     const collect = (exercise: string, rs: Row[]): SetInput[] =>
       rs
         .filter((r) => r.done)
-        .map((r) => ({ exercise, weight: Number(r.weight.replace(",", ".")) || 0, reps: Number(r.reps), rir: r.rir === "" ? null : Number(r.rir) }));
+        .map((r) => ({ exercise, weight: toKg(Number(r.weight.replace(",", ".")) || 0, unit), reps: Number(r.reps), rir: r.rir === "" ? null : Number(r.rir) }));
     const sets = [...items.flatMap((it, i) => collect(it.exercise, rows[i])), ...extra.flatMap((e) => collect(e.exercise.trim(), e.rows))];
     if (!sets.length) {
       setError("Coche au moins une série (✓) avant d'enregistrer.");
@@ -126,10 +127,10 @@ export default function WorkoutLogger({ templateName, date, items, otherTemplate
               {it.sets}×{it.repsMin === it.repsMax ? it.repsMax : `${it.repsMin}-${it.repsMax}`}
             </span>
           </div>
-          <p className="text-xs text-gym">{it.target.weight != null ? `Objectif ${it.target.weight} kg · ` : ""}{it.target.reason}</p>
+          <p className="text-xs text-gym">{it.target.weight != null ? `Objectif ${it.target.weight} ${unit} · ` : ""}{it.target.reason}</p>
           {it.target.last && <p className="text-[11px] text-muted">Dernière fois : {it.target.last}</p>}
           {it.note && <p className="text-[11px] text-muted">{it.note}</p>}
-          {header}
+          <Header unit={unit} />
           {rows[i].map((r, j) => (
             <SetRow key={j} r={r} idx={j} onChange={(p) => update(i, j, p)} />
           ))}
@@ -142,7 +143,7 @@ export default function WorkoutLogger({ templateName, date, items, otherTemplate
       {extra.map((e, k) => (
         <section key={k} className="card space-y-2">
           <input className="input font-semibold" placeholder="Nom de l'exercice" value={e.exercise} onChange={(ev) => setExtra((x) => x.map((y, a) => (a === k ? { ...y, exercise: ev.target.value } : y)))} />
-          {header}
+          <Header unit={unit} />
           {e.rows.map((r, j) => (
             <SetRow key={j} r={r} idx={j} onChange={(p) => setExtra((x) => x.map((y, a) => (a === k ? { ...y, rows: y.rows.map((z, b) => (b === j ? { ...z, ...p } : z)) } : y)))} />
           ))}
