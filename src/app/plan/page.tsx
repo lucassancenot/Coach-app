@@ -170,12 +170,15 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         </p>
         {selEvents.length > 0 && (
           <div className="card">
-            <p className="label mb-2 !text-[10px]">Google Agenda</p>
+            <p className="label mb-2 !text-[10px]">Agenda</p>
             <ul className="space-y-1 text-sm">
               {selEvents.map((e, i) => (
                 <li key={i} className="flex gap-3">
                   <span className="w-24 shrink-0 text-muted tabular-nums">{e.time ? `${e.time}${e.endTime ? `–${e.endTime}` : ""}` : "Journée"}</span>
-                  <span>{e.title}</span>
+                  <span>
+                    {e.title}
+                    <span className="block text-[11px] text-muted">{e.calendar}</span>
+                  </span>
                 </li>
               ))}
             </ul>

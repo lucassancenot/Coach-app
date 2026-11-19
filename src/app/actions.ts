@@ -10,6 +10,7 @@ import { activityFeedback, aiEnabled, chatReply, workoutFeedback } from "@/lib/c
 import { getAthlete, getChat, type TemplateItem } from "@/lib/data";
 import { syncActivities } from "@/lib/strava";
 import { today } from "@/lib/dates";
+import { calendarUrls } from "@/lib/gcal";
 
 export interface SetInput {
   exercise: string;
@@ -101,15 +102,19 @@ export async function saveSettings(formData: FormData) {
 export async function saveCalendar(formData: FormData) {
   await requireAuth();
   const athlete = await getAthlete();
-  if (formData.get("remove")) {
-    await db.update(schema.athlete).set({ calendarUrl: null }).where(eq(schema.athlete.id, athlete.id));
+  const urls = calendarUrls(athlete.calendarUrl);
+  const remove = formData.get("remove");
+  if (remove != null) {
+    urls.splice(Number(remove), 1);
   } else {
-    let url = String(formData.get("calendarUrl") ?? "").trim();
-    if (url.startsWith("••")) return; // champ inchangé
-    url = url.replace(/^webcal:\/\//, "https://");
-    if (!/^https:\/\/\S+$/.test(url)) return;
-    await db.update(schema.athlete).set({ calendarUrl: url }).where(eq(schema.athlete.id, athlete.id));
+    const url = String(formData.get("calendarUrl") ?? "").trim().replace(/^webcal:\/\//, "https://");
+    if (!/^https:\/\/\S+$/.test(url) || urls.includes(url) || urls.length >= 5) return;
+    urls.push(url);
   }
+  await db
+    .update(schema.athlete)
+    .set({ calendarUrl: urls.length ? urls.join("\n") : null })
+    .where(eq(schema.athlete.id, athlete.id));
   revalidatePath("/", "layout");
 }
 

@@ -7,6 +7,12 @@ export interface CalEvent {
   time: string | null; // "HH:MM" (null = journée entière)
   endTime: string | null;
   title: string;
+  calendar: string; // nom de l'agenda (X-WR-CALNAME)
+}
+
+/** Les adresses sont stockées une par ligne. */
+export function calendarUrls(stored: string | null | undefined): string[] {
+  return (stored ?? "").split(/\r?\n/).map((u) => u.trim()).filter(Boolean);
 }
 
 function localParts(d: Date, tz: string) {
@@ -16,19 +22,28 @@ function localParts(d: Date, tz: string) {
 }
 
 /**
- * Lit l'agenda Google via son « adresse secrète au format iCal » (lecture seule).
- * Réponse mise en cache 15 min. En cas d'erreur, renvoie une liste vide et le message.
+ * Lit un ou plusieurs agendas au format iCal (adresse secrète Google, lien Outlook, etc.), en lecture seule.
+ * Réponses mises en cache 15 min. Un agenda en erreur n'empêche pas d'afficher les autres.
  */
-export async function getCalendarEvents(icsUrl: string | null | undefined, from: string, to: string): Promise<{ events: CalEvent[]; error?: string }> {
-  if (!icsUrl) return { events: [] };
+export async function getCalendarEvents(stored: string | null | undefined, from: string, to: string): Promise<{ events: CalEvent[]; error?: string }> {
+  const urls = calendarUrls(stored);
+  const results = await Promise.all(urls.map((u, i) => readOne(u, i + 1, from, to)));
+  const events = results.flatMap((r) => r.events);
+  events.sort((a, b) => (a.date + (a.time ?? "00:00")).localeCompare(b.date + (b.time ?? "00:00")));
+  const errors = results.map((r) => r.error).filter(Boolean);
+  return { events, error: errors.length ? errors.join(" ") : undefined };
+}
+
+async function readOne(icsUrl: string, n: number, from: string, to: string): Promise<{ events: CalEvent[]; error?: string }> {
   let text: string;
   try {
     const res = await fetch(icsUrl, { next: { revalidate: 900 }, signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return { events: [], error: `Agenda Google inaccessible (${res.status}). Vérifie l'adresse dans Réglages.` };
+    if (!res.ok) return { events: [], error: `Agenda ${n} inaccessible (${res.status}) : vérifie son adresse dans Réglages.` };
     text = await res.text();
   } catch {
-    return { events: [], error: "Agenda Google inaccessible pour le moment." };
+    return { events: [], error: `Agenda ${n} inaccessible pour le moment.` };
   }
+  const calendar = /^X-WR-CALNAME:(.+)$/m.exec(text)?.[1]?.trim() || `Agenda ${n}`;
 
   const data = ical.sync.parseICS(text);
   const fromD = new Date(`${addDays(from, -1)}T00:00:00Z`);
@@ -52,16 +67,15 @@ export async function getCalendarEvents(icsUrl: string | null | undefined, from:
         const startDay = localParts(inst.start, tz).day;
         const endDay = inst.end ? localParts(inst.end, tz).day : addDays(startDay, 1);
         for (let d = startDay; d < endDay && d <= to; d = addDays(d, 1)) {
-          if (d >= from) out.push({ date: d, time: null, endTime: null, title });
+          if (d >= from) out.push({ date: d, time: null, endTime: null, title, calendar });
         }
       } else {
         const tz = athleteTimeZone(inst.start.toISOString().slice(0, 10));
         const s = localParts(inst.start, tz);
         const e = inst.end ? localParts(inst.end, tz) : null;
-        if (s.day >= from && s.day <= to) out.push({ date: s.day, time: s.time, endTime: e?.time ?? null, title });
+        if (s.day >= from && s.day <= to) out.push({ date: s.day, time: s.time, endTime: e?.time ?? null, title, calendar });
       }
     }
   }
-  out.sort((a, b) => (a.date + (a.time ?? "00:00")).localeCompare(b.date + (b.time ?? "00:00")));
   return { events: out };
 }

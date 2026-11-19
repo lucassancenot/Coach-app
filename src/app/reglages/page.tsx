@@ -2,6 +2,7 @@ import { isDemo, requireAuth } from "@/lib/auth";
 import { aiEnabled } from "@/lib/coach";
 import { getAthlete } from "@/lib/data";
 import { zones } from "@/lib/plan";
+import { calendarUrls } from "@/lib/gcal";
 import { logout, saveCalendar, saveSettings } from "@/app/actions";
 import { PageTitle } from "@/components/ui";
 
@@ -10,6 +11,14 @@ export const dynamic = "force-dynamic";
 export default async function ReglagesPage() {
   await requireAuth();
   const a = await getAthlete();
+  const cals = calendarUrls(a.calendarUrl);
+  const hostOf = (u: string) => {
+    try {
+      return new URL(u).hostname;
+    } catch {
+      return "adresse invalide";
+    }
+  };
   const z = zones(a.hrMax);
   return (
     <>
@@ -34,28 +43,41 @@ export default async function ReglagesPage() {
         <button className="btn w-full">Enregistrer</button>
       </form>
 
-      <form action={saveCalendar} className="card mb-4 space-y-2">
-        <p className="label">Google Agenda (lecture seule)</p>
-        <p className="text-xs text-text-2">
-          Google Agenda sur ordinateur → ⚙ Paramètres → clique sur ton agenda à gauche → « Intégrer l&apos;agenda » → copie l&apos;<b>adresse secrète au format iCal</b>.
-        </p>
-        <input
-          name="calendarUrl"
-          className="input text-sm"
-          placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"
-          defaultValue={a.calendarUrl ? "••••••••  (agenda connecté)" : ""}
-          autoComplete="off"
-        />
-        <div className="flex gap-2">
-          <button className="btn flex-1">Enregistrer</button>
-          {a.calendarUrl && (
-            <button name="remove" value="1" className="btn">
-              Retirer
-            </button>
-          )}
-        </div>
-        <p className="text-[11px] text-muted">Cette adresse donne accès à ton agenda : elle reste dans la base de l&apos;app, n&apos;est jamais affichée ni envoyée au coach IA.</p>
-      </form>
+      <section className="card mb-4 space-y-3">
+        <p className="label">Agendas (lecture seule)</p>
+        {cals.length > 0 && (
+          <ul className="space-y-2">
+            {cals.map((u, i) => (
+              <li key={i} className="flex items-center justify-between gap-2 rounded-lg bg-surface-2 px-3 py-2 text-sm">
+                <span>
+                  Agenda {i + 1} · <span className="text-muted">{hostOf(u)}</span>
+                </span>
+                <form action={saveCalendar}>
+                  <input type="hidden" name="remove" value={i} />
+                  <button className="text-xs text-muted underline">Retirer</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form action={saveCalendar} className="space-y-2">
+          <input name="calendarUrl" className="input text-sm" placeholder="Adresse .ics (Google, Outlook, HEC…)" autoComplete="off" />
+          <button className="btn w-full">Ajouter un agenda</button>
+        </form>
+        <details className="text-xs text-text-2">
+          <summary className="cursor-pointer text-muted">Où trouver l&apos;adresse ?</summary>
+          <ul className="mt-2 space-y-1">
+            <li>
+              • <b>Google Agenda</b> (sur ordinateur) : ⚙ Paramètres → ton agenda à gauche → « Intégrer l&apos;agenda » → <b>adresse secrète au format iCal</b>.
+            </li>
+            <li>
+              • <b>Outlook / HEC</b> : Paramètres → Calendrier → Calendriers partagés → « Publier un calendrier » → lien <b>ICS</b>.
+            </li>
+            <li>• Un agenda auquel tu es abonné dans Google (identifiant en @import) : utilise son lien d&apos;origine.</li>
+          </ul>
+        </details>
+        <p className="text-[11px] text-muted">Ces adresses donnent accès à tes agendas : elles restent dans la base de l&apos;app, ne sont jamais affichées en entier ni envoyées au coach IA.</p>
+      </section>
 
       <section className="card mb-4">
         <p className="label mb-2">Tes zones (% FCmax)</p>
