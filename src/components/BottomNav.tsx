@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/", label: "Aujourd'hui", icon: "M3 12l9-8 9 8M5 10v10h14V10" },
+  { href: "/plan", label: "Plan", icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" },
   { href: "/course", label: "Course", icon: "M13 4a2 2 0 110 4 2 2 0 010-4zM7 21l3-6 3 2v5M10 15l1-5 4 3 3-1M8 10l3-2" },
   { href: "/salle", label: "Salle", icon: "M3 10v4M6 7v10M18 7v10M21 10v4M6 12h12" },
   { href: "/coach", label: "Coach", icon: "M4 5h16v11H8l-4 4V5z" },

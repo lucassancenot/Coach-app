@@ -411,6 +411,30 @@ export function sessionsFor(date: string, ctx: PlanContext): Session[] {
   }
 }
 
+/** Étiquette courte pour la vue calendrier. */
+export function shortLabel(s: Session): string {
+  if (s.kind === "gym") return (s.template ?? "Salle").replace("Upper", "Haut").replace("Lower", "Bas");
+  switch (s.key) {
+    case "run-z2":
+      return s.durationMin ? `Z2 ${s.durationMin}′` : "Z2";
+    case "run-long":
+      return s.durationMin ? `Long ${s.durationMin}′` : "Long";
+    case "run-hiit":
+      return s.title.replace("Fractionné ", "");
+    case "run-1515":
+      return "15/15";
+    case "run-sprint":
+      return "Sprint";
+    case "test-3015":
+      return "Test IFT";
+    case "run-z1":
+    case "recovery":
+      return "Récup";
+    default:
+      return s.title.startsWith("Vol") ? "Vol" : "Repos";
+  }
+}
+
 export interface DayPlan {
   date: string;
   sessions: Session[];

@@ -2,7 +2,7 @@ import { isDemo, requireAuth } from "@/lib/auth";
 import { aiEnabled } from "@/lib/coach";
 import { getAthlete } from "@/lib/data";
 import { zones } from "@/lib/plan";
-import { logout, saveSettings } from "@/app/actions";
+import { logout, saveCalendar, saveSettings } from "@/app/actions";
 import { PageTitle } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +32,29 @@ export default async function ReglagesPage() {
           <span className="mt-1 block text-[11px] text-muted">Change à tout moment : l&apos;historique est converti automatiquement.</span>
         </label>
         <button className="btn w-full">Enregistrer</button>
+      </form>
+
+      <form action={saveCalendar} className="card mb-4 space-y-2">
+        <p className="label">Google Agenda (lecture seule)</p>
+        <p className="text-xs text-text-2">
+          Google Agenda sur ordinateur → ⚙ Paramètres → clique sur ton agenda à gauche → « Intégrer l&apos;agenda » → copie l&apos;<b>adresse secrète au format iCal</b>.
+        </p>
+        <input
+          name="calendarUrl"
+          className="input text-sm"
+          placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"
+          defaultValue={a.calendarUrl ? "••••••••  (agenda connecté)" : ""}
+          autoComplete="off"
+        />
+        <div className="flex gap-2">
+          <button className="btn flex-1">Enregistrer</button>
+          {a.calendarUrl && (
+            <button name="remove" value="1" className="btn">
+              Retirer
+            </button>
+          )}
+        </div>
+        <p className="text-[11px] text-muted">Cette adresse donne accès à ton agenda : elle reste dans la base de l&apos;app, n&apos;est jamais affichée ni envoyée au coach IA.</p>
       </form>
 
       <section className="card mb-4">

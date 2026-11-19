@@ -98,6 +98,21 @@ export async function saveSettings(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
+export async function saveCalendar(formData: FormData) {
+  await requireAuth();
+  const athlete = await getAthlete();
+  if (formData.get("remove")) {
+    await db.update(schema.athlete).set({ calendarUrl: null }).where(eq(schema.athlete.id, athlete.id));
+  } else {
+    let url = String(formData.get("calendarUrl") ?? "").trim();
+    if (url.startsWith("••")) return; // champ inchangé
+    url = url.replace(/^webcal:\/\//, "https://");
+    if (!/^https:\/\/\S+$/.test(url)) return;
+    await db.update(schema.athlete).set({ calendarUrl: url }).where(eq(schema.athlete.id, athlete.id));
+  }
+  revalidatePath("/", "layout");
+}
+
 export async function dismissAlert(id: number) {
   await requireAuth();
   await db.update(schema.alerts).set({ dismissed: true }).where(eq(schema.alerts.id, id));
