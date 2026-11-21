@@ -50,10 +50,10 @@ export const PHASES: Phase[] = [
     name: "Bloc de force",
     start: "2026-11-16",
     end: "2027-01-03",
-    goal: "Monter la force maximale (4 séances de salle) tout en construisant la base de course : 5 sorties, dont vitesse max et fractionné.",
+    goal: "Monter la force maximale (4 séances de salle) et construire la base de course, en 6 séances par semaine, une par jour : la course est collée à la salle.",
     rules: [
       "Exercices de base en vagues : 4×6 → 4×5 → 5×4 → 5×3 → 3×3, charges calculées depuis ton 1RM estimé et le RIR visé.",
-      "Vitesse max le matin, jambes lourdes le soir (≥ 6 h d'écart). Jamais de fractionné juste avant une séance de jambes.",
+      "Séance combinée : sprints et sauts d'abord, charges lourdes ensuite, endurance à la fin. Le fractionné suit le haut du corps, jamais la veille des jambes.",
       "La course monte progressivement depuis tes 2 sorties actuelles pour éviter un pic de charge.",
       "Semaine du 28 déc. = décharge (2 séries, RIR 4) avant le départ.",
     ],
@@ -63,7 +63,7 @@ export const PHASES: Phase[] = [
     name: "Base aérobie + chaleur (Singapour)",
     start: "2027-01-04",
     end: "2027-02-28",
-    goal: "Construire un gros moteur aérobie (6 sorties/sem) et s'acclimater à la chaleur. Salle : 3 séances, force maintenue lourde.",
+    goal: "Construire un gros moteur aérobie (5 courses/sem) et s'acclimater à la chaleur. Salle : 3 séances, force maintenue lourde. 6 séances, une par jour.",
     rules: [
       "Courses pilotées à la FC et au ressenti, jamais à l'allure : à 30 °C et 80 % d'humidité, l'allure chute normalement.",
       "Courir tôt le matin ou le soir. Boire 500 ml dans l'heure avant, 400-800 ml/h pendant les sorties > 60 min.",
@@ -288,8 +288,14 @@ function prevention(): string {
 }
 
 // ─── Phases ───────────────────────────────────────────────────────
-// Semaine type « high/low » : les jours nerveux (vitesse + jambes lourdes) sont groupés,
-// les jours légers associent endurance basse et haut du corps. ≥ 6 h entre deux qualités opposées.
+// 6 séances par semaine, un seul déplacement par jour : la course est collée à la salle.
+// Ordre dans une séance combinée : neuromusculaire d'abord (sprints, sauts), puis charges lourdes,
+// puis endurance. Course + muscu dans la même séance n'altère ni la force ni l'hypertrophie
+// (Schumann 2022) ; seule l'explosivité en pâtit un peu, d'où les sprints en début de séance.
+// À volume égal, la fréquence change peu les gains (Schoenfeld 2019).
+
+const FIRST = "En début de séance, avant la salle (même déplacement).";
+const AFTER = "Juste après la salle, dans la même séance (tapis, vélo ou dehors).";
 
 function phaseForce(week: number, day: number, ctx: PlanContext): Session[] {
   const deload = week >= 6; // semaine du 28 déc.
@@ -302,17 +308,18 @@ function phaseForce(week: number, day: number, ctx: PlanContext): Session[] {
       : week === 5
         ? intermittent(2, 8, ctx, "15/15")
         : helgerud(4, ctx);
+  const withNote = (s: Session, note: string): Session => ({ ...s, lines: [note, ...s.lines] });
   switch (day) {
     case 0:
-      return [maxSpeed(deload ? 2 : 4, false, ["Le matin. Séance de jambes le soir, au moins 6 h après."]), gymS("basA", "force", week, deload)];
+      return [maxSpeed(deload ? 2 : 4, false, [FIRST, "Pas d'espace pour sprinter à la salle : fais-les juste avant d'entrer, ou 6 × 8 s en côte."]), gymS("basA", "force", week, deload)];
     case 1:
-      return [gymS("hautA", "force", week, deload), z2(z2min, ctx, ["Après la salle ou à un autre moment de la journée."])];
+      return [gymS("hautA", "force", week, deload), withNote(hiit, AFTER)];
     case 2:
-      return [hiit];
+      return [{ ...REST, lines: ["Repos (études). 48 h entre le fractionné et la séance de jambes de jeudi."] }];
     case 3:
       return [gymS("basB", "force", week, deload)];
     case 4:
-      return [gymS("hautB", "force", week, deload), z2(z2min, ctx, ["4 accélérations progressives de 20 s à la fin."])];
+      return [gymS("hautB", "force", week, deload), z2(z2min, ctx, [AFTER, "4 accélérations progressives de 20 s à la fin."])];
     case 5:
       return [longRun(long, ctx)];
     default:
@@ -324,13 +331,14 @@ function phaseBase(week: number, day: number, ctx: PlanContext, date: string): S
   const z = zones(ctx.hrMax);
   // Semaine 1 : vol, décalage horaire (13 h) et chaleur. Pas d'intensité (Racinais 2015 : 60-90 min/j d'exposition).
   if (week === 0) {
-    const heat = (min: number): Session => ({
+    const heat = (min: number, extra: string[] = []): Session => ({
       kind: "run",
       key: "run-z2",
       title: `Footing chaleur · ${min} min`,
       durationMin: min,
       hr: [z.z1[0], z.z2[1] - 5],
       lines: [
+        ...extra,
         `${min} min sous ${z.z2[1] - 5} bpm, dehors, tôt le matin. Marche si la FC dépasse.`,
         "Acclimatation : 60-90 min/jour d'exposition à la chaleur pendant 1 à 2 semaines (consensus Racinais 2015). L'exposition compte plus que la vitesse.",
       ],
@@ -338,19 +346,19 @@ function phaseBase(week: number, day: number, ctx: PlanContext, date: string): S
     return [
       [{ kind: "rest", key: "rest", title: "Vol Montréal → Singapour", lines: ["Bois beaucoup, marche dans l'avion toutes les 2 h. Cale-toi sur l'heure de Singapour dès l'embarquement."] } as Session],
       [{ kind: "recovery", key: "recovery", title: "Arrivée · marche 30-45 min dehors", lines: ["Lumière du jour le matin pour recaler l'horloge (13 h de décalage). Pas de sieste > 20 min."] } as Session],
-      [heat(40)],
-      [gymS("hautA", "base", week, false), heat(30)],
-      [heat(50)],
+      [heat(45)],
+      [gymS("hautA", "base", week, false), heat(30, [AFTER])],
+      [heat(55)],
       [gymS("basA", "base", week, false)],
       [heat(60)],
     ][day];
   }
   if (week === 1) {
     return [
-      [z2(50, ctx, ["6 lignes droites de 80 m en fin de séance."]), gymS("basA", "base", week, false)],
-      [helgerud(3, ctx), gymS("hautA", "base", week, false)],
-      [z2(55, ctx, [], "Footing Z2 · 55 min (ou ballon)")],
-      [maxSpeed(3), gymS("basB", "base", week, false)],
+      [maxSpeed(3, false, [FIRST]), gymS("basA", "base", week, false)],
+      [gymS("hautA", "base", week, false), { ...helgerud(3, ctx), lines: [AFTER, ...helgerud(3, ctx).lines] }],
+      [z2(55, ctx, [prevention()], "Footing Z2 · 55 min (ou ballon)")],
+      [gymS("basB", "base", week, false)],
       [z2(45, ctx)],
       [longRun(65, ctx)],
       [REST],
@@ -361,16 +369,18 @@ function phaseBase(week: number, day: number, ctx: PlanContext, date: string): S
   const long = [0, 0, 70, 75, 80, 55, 85, 90][week];
   const hiitLong = [null, null, helgerud(4, ctx), helgerud(5, ctx), helgerud(6, ctx, 3), helgerud(3, ctx), helgerud(5, ctx), helgerud(6, ctx)][week]!;
   const fri: Session =
-    week === 2 ? z2(45, ctx) : intermittent(deload ? 2 : week >= 6 ? 3 : 2, deload ? 6 : week >= 6 ? 7 : 8, ctx, "15/15");
+    week === 2 ? z2(50, ctx) : intermittent(deload ? 2 : week >= 6 ? 3 : 2, deload ? 6 : week >= 6 ? 7 : 8, ctx, "15/15");
   switch (day) {
     case 0:
-      return [z2(deload ? 35 : 45, ctx, ["Le matin. 6 lignes droites de 80 m à la fin."]), gymS("basA", "base", week, deload)];
+      return [maxSpeed(deload ? 3 : 5, true, [FIRST]), gymS("basA", "base", week, deload)];
     case 1:
-      return [hiitLong, gymS("hautA", "base", week, deload)];
+      return [gymS("hautA", "base", week, deload), { ...hiitLong, lines: [AFTER, ...hiitLong.lines] }];
     case 2:
       return [z2(deload ? 40 : 55, ctx, [prevention()], `Footing Z2 · ${deload ? 40 : 55} min (ou ballon)`)];
     case 3:
-      return isTestDay ? [test3015(), gymS("basB", "base", week, deload)] : [maxSpeed(deload ? 3 : 5, true), gymS("basB", "base", week, deload)];
+      return isTestDay
+        ? [test3015(), gymS("basB", "base", week, true, ["Après le test, dans la même séance : version allégée, saute la pliométrie."])]
+        : [gymS("basB", "base", week, deload)];
     case 4:
       return [fri];
     case 5:
@@ -388,21 +398,22 @@ function phaseFoot(week: number, day: number, ctx: PlanContext, date: string): S
   const [s, m, pat] = plan[week];
   const rsa = deload ? 1 : week >= 4 ? 3 : 2;
   const isTestDay = date === "2027-03-25" || date === "2027-04-22";
+  const i3030 = intermittent(deload ? 2 : 3, 6, ctx, "30/30");
   switch (day) {
     case 0:
-      return [maxSpeed(deload ? 3 : 5, false, ["Le matin. Séance de jambes le soir."]), gymS("basA", "foot", week, deload)];
+      return [maxSpeed(deload ? 3 : 5, false, [FIRST]), gymS("basA", "foot", week, deload)];
     case 1:
       return [intermittent(s, m, ctx, pat, deload ? 0 : 1)];
     case 2:
-      return [z2(deload ? 30 : 40, ctx, [prevention()]), gymS("hautA", "foot", week, deload)];
+      return [gymS("hautA", "foot", week, deload), z2(deload ? 25 : 30, ctx, [AFTER, prevention()])];
     case 3:
       return isTestDay
         ? [test3015()]
-        : [{ ...intermittent(deload ? 2 : 3, 6, ctx, "30/30"), title: "Intermittent 30/30 navettes (ou ballon)", lines: [...intermittent(deload ? 2 : 3, 6, ctx, "30/30").lines, "Si tu fais du ballon ou du jeu réduit ce jour-là, il remplace cette séance."] }];
+        : [{ ...i3030, title: "Intermittent 30/30 navettes (ou ballon)", lines: [...i3030.lines, "Si tu fais du ballon ou du jeu réduit ce jour-là, il remplace cette séance."] }];
     case 4:
-      return [plyoShort(deload ? 30 : 50)];
+      return [{ ...REST, lines: ["Repos (études). La séance de samedi est la plus dure de la semaine."] }];
     case 5:
-      return [rsaMatch(rsa, ctx)];
+      return [{ ...rsaMatch(rsa, ctx), lines: [...rsaMatch(rsa, ctx).lines, `Avant les sprints répétés : 3 × 20 m lancés + pliométrie ~${deload ? 20 : 40} contacts (sauts groupés, bonds, hops).`] }];
     default:
       return [REST];
   }
@@ -412,17 +423,17 @@ function phaseAffutage(week: number, day: number, ctx: PlanContext): Session[] {
   // Bosquet 2007 : volume -41 à -60 %, intensité maintenue, 8-14 jours.
   if (week === 0) {
     return [
-      [maxSpeed(4), gymS("basA", "affutage", week, false)],
+      [maxSpeed(4, false, [FIRST]), gymS("basA", "affutage", week, false)],
       [intermittent(2, 6, ctx, "15/15")],
-      [z2(35, ctx), gymS("hautA", "affutage", week, false)],
+      [gymS("hautA", "affutage", week, false), z2(30, ctx, [AFTER])],
       [maxSpeed(3, true)],
-      [z2(30, ctx)],
+      [REST],
       [rsaMatch(1, ctx)],
       [REST],
     ][day];
   }
   return [
-    [maxSpeed(3), gymS("basA", "affutage", week, true)],
+    [maxSpeed(3, false, [FIRST]), gymS("basA", "affutage", week, true)],
     [intermittent(1, 6, ctx, "15/15")],
     [z2(30, ctx, ["4 lignes droites."])],
     [plyoShort(20)],
@@ -434,11 +445,11 @@ function phaseAffutage(week: number, day: number, ctx: PlanContext): Session[] {
 
 function phaseSaison(day: number, ctx: PlanContext): Session[] {
   return [
-    [maxSpeed(4), gymS("basA", "saison", 0, false, ["Pas à moins de 48 h d'un match."])],
+    [maxSpeed(4, false, [FIRST]), gymS("basA", "saison", 0, false, ["Pas à moins de 48 h d'un match."])],
     [intermittent(2, 8, ctx, "15/15", 1)],
-    [z2(40, ctx, [prevention()]), gymS("hautA", "saison", 0, false)],
-    [z2(35, ctx)],
+    [gymS("hautA", "saison", 0, false), z2(30, ctx, [AFTER, prevention()])],
     [maxSpeed(3, true, ["2 jours avant le match : la meilleure fenêtre pour sprinter (Buchheit 2023)."])],
+    [{ ...REST, lines: ["Veille de match : repos ou 20 min très facile."] }],
     [{ ...rsaMatch(2, ctx), title: "Match (ou simulation de match)" }],
     [REST],
   ][day];

@@ -115,7 +115,7 @@ export async function evaluateAlerts(): Promise<number> {
       if (!done) missed.push(`${s.title} (${prettyDate(day.date)})`);
     }
   }
-  if (missed.length >= 2 && lastWeek[0].date >= "2026-11-16") {
+  if (missed.length >= 2 && lastWeek[0].date >= "2026-11-23") {
     out.push({
       key: `missed-${week}`,
       severity: "warn",

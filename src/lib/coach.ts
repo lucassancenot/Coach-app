@@ -29,7 +29,7 @@ Fond :
 - Ne te base que sur les données fournies. Si une donnée manque, dis-le au lieu d'inventer.
 - Tu es responsable du programme (salle et course) affiché ci-dessous : tu le connais séance par séance et tu l'ajustes quand les données le justifient (fatigue, séance ratée, ballon, chaleur, examens). Donne alors la séance de remplacement complète, chiffrée.
 - Le ballon (activités Strava de type Soccer) remplace les séances de conditionnement du jour. Après un match ou du jeu intense : pas de jambes lourdes ni de fractionné dans les 24 h, et décale ce qui doit l'être.
-- Principes : ≥ 6 h entre jambes lourdes et endurance intense (Robineau 2016) ; vitesse > 95 % Vmax chaque semaine (Buchheit 2023) ; fractionnés réglés sur la VIFT ; 1 séance lourde/sem suffit à maintenir la force (Rønnestad 2011) ; décharge 1 semaine sur 4.`;
+- Principes : séances combinées dans l'ordre sprints/sauts → charges lourdes → endurance (Schumann 2022 : pas d'interférence sur force/hypertrophie, un peu sur l'explosivité) ; pas de fractionné la veille des jambes ; ne propose jamais de doubles séances ; vitesse > 95 % Vmax chaque semaine (Buchheit 2023) ; fractionnés réglés sur la VIFT ; 1 séance lourde/sem suffit à maintenir la force (Rønnestad 2011) ; décharge 1 semaine sur 4.`;
 
 /** Résumé compact des données, injecté dans chaque requête. */
 export async function buildContext(): Promise<string> {
@@ -89,7 +89,7 @@ export async function buildContext(): Promise<string> {
 
   return `Date du jour : ${prettyDate(now)} (${now}). Retour à Montréal dans ${daysBetween(now, RETURN)} jours (8 mai 2027). Échange à Singapour du 4 janv. au 8 mai 2027 (chaleur 27-32 °C, ~80 % d'humidité).
 
-Profil : 20 ans, 184 cm, ${athlete.bodyWeight} kg. FCmax ${athlete.hrMax}, FC repos ${athlete.hrRest}. Dispo : 6 j/sem, doubles possibles, salle ≤ 75 min. Priorité : endurance intermittente, avec de la vitesse. VIFT 30-15 : ${athlete.vift ?? "pas encore testée"}. Salle 4×/sem en Upper/Lower (A/B), course 2×/sem en phase de force. Aucune blessure déclarée, mais il a noté des « petites douleurs » ponctuelles (hip thrust lourd, curl ischio, dips) : à surveiller. Unité des charges : ${unit}.
+Profil : 20 ans, 184 cm, ${athlete.bodyWeight} kg. FCmax ${athlete.hrMax}, FC repos ${athlete.hrRest}. Dispo : 6 séances/sem, UNE par jour (études : il ne veut pas se déplacer deux fois), salle ≤ 75 min. Course et salle sont combinées dans la même séance. Priorité : endurance intermittente, avec de la vitesse. VIFT 30-15 : ${athlete.vift ?? "pas encore testée"}. Programme du coach ci-dessous (salle 4×/sem en phase de force, puis 3, puis 2). Aucune douleur actuelle ; il avait noté des « petites douleurs » ponctuelles passées (hip thrust lourd, curl ischio, dips) : à surveiller. Unité des charges : ${unit}.
 Zones FC : Z1 ${z.z1.join("-")}, Z2 ${z.z2.join("-")}, Z3 ${z.z3.join("-")}, Z4 ${z.z4.join("-")}, Z5 ${z.z5.join("-")} ; 4×4 Helgerud ${z.helgerud.join("-")}.
 
 Phase : ${phase.name}, semaine ${week}${totalWeeks ? `/${totalWeeks}` : ""}. Objectif : ${phase.goal}
