@@ -33,6 +33,11 @@ export default async function ReglagesPage() {
           <input name="hrRest" className="input mt-1" inputMode="numeric" defaultValue={a.hrRest} />
         </label>
         <label className="block">
+          <span className="label">Poids de corps (kg)</span>
+          <input name="bodyWeight" className="input mt-1" inputMode="decimal" defaultValue={a.bodyWeight} />
+          <span className="mt-1 block text-[11px] text-muted">Sert à calculer les charges des tractions et dips lestés.</span>
+        </label>
+        <label className="block">
           <span className="label">Unité des charges</span>
           <select name="unit" className="input mt-1" defaultValue={a.unit}>
             <option value="lb">Livres (lb)</option>

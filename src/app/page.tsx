@@ -68,7 +68,7 @@ export default async function TodayPage() {
           <SessionCard key={i} s={s} done={isDone(s, now, acts, workouts)} />
         ))}
         {todaySessions.some((s) => s.kind === "gym") && (
-          <Link href={`/salle/seance?template=${encodeURIComponent(todaySessions.find((s) => s.kind === "gym")!.template!)}`} className="btn btn-primary w-full">
+          <Link href={`/salle/seance?date=${now}`} className="btn btn-primary w-full">
             Démarrer la séance
           </Link>
         )}

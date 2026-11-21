@@ -9,6 +9,7 @@ export interface TemplateItem {
   repsMin: number;
   repsMax: number;
   note?: string;
+  rir?: number; // RIR visé (programme du coach)
 }
 
 const UPPER: TemplateItem[] = [

@@ -2,7 +2,8 @@ import "server-only";
 import { db, schema } from "@/db";
 import { addDays, mondayOf, prettyDate, today } from "./dates";
 import { acwr, e1rm, intensityDistribution, trimpFromAverage } from "./metrics";
-import { phaseFor, weekPlan } from "./plan";
+import { phaseFor, sessionsFor, weekPlan } from "./plan";
+import { isFootball } from "./progress";
 import { asUnit, fromKg } from "./units";
 import { getActivities, getAthlete, getWorkouts, MAIN_LIFTS } from "./data";
 
@@ -121,6 +122,21 @@ export async function evaluateAlerts(): Promise<number> {
       title: `${missed.length} séances clés manquées la semaine dernière`,
       message: `${missed.join(", ")}. Ne les rattrape pas en les empilant cette semaine. Priorité : la séance intense de course et les séances Lower. Le reste peut sauter.`,
     });
+  }
+
+  // 6. Ballon : match ou jeu la veille → on allège les séances intenses du jour (récupération 48-72 h après match).
+  const yesterday = addDays(now, -1);
+  const foot = acts.find((a) => isFootball(a.type) && a.startDate.slice(0, 10) === yesterday && a.movingTime >= 40 * 60);
+  if (foot) {
+    const hard = sessionsFor(now, ctx).filter((x) => ["run-hiit", "run-1515", "run-rsa", "run-sprint"].includes(x.key) || x.gymId === "basA" || x.gymId === "basB");
+    if (hard.length) {
+      out.push({
+        key: `foot-${now}`,
+        severity: "warn",
+        title: `Ballon hier (${Math.round(foot.movingTime / 60)} min) : on adapte aujourd'hui`,
+        message: `Prévu aujourd'hui : ${hard.map((h) => h.title).join(" + ")}. Remplace par 30-40 min en Z1-Z2 et décale la séance intense à demain si tu te sens frais. Ne fais pas de jambes lourdes dans les 24 h qui suivent un match.`,
+      });
+    }
   }
 
   let created = 0;

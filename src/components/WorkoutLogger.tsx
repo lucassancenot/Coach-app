@@ -19,7 +19,7 @@ function initialRows(items: Item[]): Row[][] {
     Array.from({ length: it.sets }, () => ({
       weight: it.target.weight != null ? String(it.target.weight) : "",
       reps: String(it.repsMax),
-      rir: "2",
+      rir: it.rir != null ? String(it.rir) : "2",
       done: false,
     })),
   );
@@ -127,7 +127,7 @@ export default function WorkoutLogger({ templateName, date, items, unit, otherTe
               {it.sets}×{it.repsMin === it.repsMax ? it.repsMax : `${it.repsMin}-${it.repsMax}`}
             </span>
           </div>
-          <p className="text-xs text-gym">{it.target.weight != null ? `Objectif ${it.target.weight} ${unit} · ` : ""}{it.target.reason}</p>
+          <p className="text-xs text-gym">{it.target.weight ? `Objectif ${it.target.weight} ${unit} · ` : ""}{it.target.reason}</p>
           {it.target.last && <p className="text-[11px] text-muted">Dernière fois : {it.target.last}</p>}
           {it.note && <p className="text-[11px] text-muted">{it.note}</p>}
           <Header unit={unit} />

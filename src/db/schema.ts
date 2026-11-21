@@ -9,6 +9,7 @@ export const athlete = sqliteTable("athlete", {
   expiresAt: integer("expires_at"), // epoch secondes
   hrMax: integer("hr_max").notNull().default(193),
   hrRest: integer("hr_rest").notNull().default(55),
+  bodyWeight: real("body_weight").notNull().default(80), // kg
   vift: real("vift"), // vitesse finale 30-15 IFT en km/h
   calendarUrl: text("calendar_url"), // adresse secrète iCal de Google Agenda (lecture seule)
   unit: text("unit").notNull().default("kg"), // unité d'affichage des charges : "kg" | "lb"

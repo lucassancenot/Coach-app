@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { addDays, formatDuration, formatPace, prettyDate, RETURN, daysBetween, today } from "./dates";
 import { acwr, e1rm, intensityDistribution, trimpFromAverage } from "./metrics";
-import { phaseWeek, weekPlan, zones } from "./plan";
+import { gymSessionFor, phaseWeek, weekPlan, zones } from "./plan";
 import { asUnit, fromKg } from "./units";
 import { getActiveAlerts, getActivities, getAthlete, getTests, getWorkouts, MAIN_LIFTS } from "./data";
 
@@ -26,7 +26,10 @@ Fond :
 - Appuie-toi sur la littérature scientifique (Helgerud 2001, Seiler, Schumann 2022, Périard, Buchheit, Bosquet 2007, van der Horst 2015, Schoenfeld, Helms...). Cite brièvement l'étude quand ça appuie une recommandation. Si les preuves sont faibles ou débattues (ex. ratio aigu/chronique, seuil de dérive à 5 %), dis-le.
 - Respecte le plan et ses phases ci-dessous. Tu peux proposer de l'ajuster si les données le justifient, en expliquant pourquoi.
 - Ne pose pas de diagnostic médical. Douleur articulaire, douleur qui persiste, malaise à l'effort : il doit consulter.
-- Ne te base que sur les données fournies. Si une donnée manque, dis-le au lieu d'inventer.`;
+- Ne te base que sur les données fournies. Si une donnée manque, dis-le au lieu d'inventer.
+- Tu es responsable du programme (salle et course) affiché ci-dessous : tu le connais séance par séance et tu l'ajustes quand les données le justifient (fatigue, séance ratée, ballon, chaleur, examens). Donne alors la séance de remplacement complète, chiffrée.
+- Le ballon (activités Strava de type Soccer) remplace les séances de conditionnement du jour. Après un match ou du jeu intense : pas de jambes lourdes ni de fractionné dans les 24 h, et décale ce qui doit l'être.
+- Principes : ≥ 6 h entre jambes lourdes et endurance intense (Robineau 2016) ; vitesse > 95 % Vmax chaque semaine (Buchheit 2023) ; fractionnés réglés sur la VIFT ; 1 séance lourde/sem suffit à maintenir la force (Rønnestad 2011) ; décharge 1 semaine sur 4.`;
 
 /** Résumé compact des données, injecté dans chaque requête. */
 export async function buildContext(): Promise<string> {
@@ -41,6 +44,10 @@ export async function buildContext(): Promise<string> {
   const tests = await getTests();
   const alerts = await getActiveAlerts();
 
+  const tg = gymSessionFor(now, ctx);
+  const todayGym = tg
+    ? `Séance de salle du jour (${tg.title}) : ${tg.items.map((i) => `${i.exercise} ${i.sets}×${i.reps}${i.type === "plyo" ? "" : ` @RIR${i.rir}`}`).join(", ")}.`
+    : "";
   const fmtWeek = (d: string) =>
     weekPlan(d, ctx)
       .map((day) => `  ${prettyDate(day.date)} : ${day.sessions.map((s) => s.title).join(" + ")}`)
@@ -82,7 +89,7 @@ export async function buildContext(): Promise<string> {
 
   return `Date du jour : ${prettyDate(now)} (${now}). Retour à Montréal dans ${daysBetween(now, RETURN)} jours (8 mai 2027). Échange à Singapour du 4 janv. au 8 mai 2027 (chaleur 27-32 °C, ~80 % d'humidité).
 
-Profil : FCmax ${athlete.hrMax}, FC repos ${athlete.hrRest}. VIFT 30-15 : ${athlete.vift ?? "pas encore testée"}. Salle 4×/sem en Upper/Lower (A/B), course 2×/sem en phase de force. Aucune blessure déclarée, mais il a noté des « petites douleurs » ponctuelles (hip thrust lourd, curl ischio, dips) : à surveiller. Unité des charges : ${unit}.
+Profil : 20 ans, 184 cm, ${athlete.bodyWeight} kg. FCmax ${athlete.hrMax}, FC repos ${athlete.hrRest}. Dispo : 6 j/sem, doubles possibles, salle ≤ 75 min. Priorité : endurance intermittente, avec de la vitesse. VIFT 30-15 : ${athlete.vift ?? "pas encore testée"}. Salle 4×/sem en Upper/Lower (A/B), course 2×/sem en phase de force. Aucune blessure déclarée, mais il a noté des « petites douleurs » ponctuelles (hip thrust lourd, curl ischio, dips) : à surveiller. Unité des charges : ${unit}.
 Zones FC : Z1 ${z.z1.join("-")}, Z2 ${z.z2.join("-")}, Z3 ${z.z3.join("-")}, Z4 ${z.z4.join("-")}, Z5 ${z.z5.join("-")} ; 4×4 Helgerud ${z.helgerud.join("-")}.
 
 Phase : ${phase.name}, semaine ${week}${totalWeeks ? `/${totalWeeks}` : ""}. Objectif : ${phase.goal}
@@ -91,6 +98,7 @@ ${phase.rules.map((r) => `  - ${r}`).join("\n")}
 
 Plan de cette semaine :
 ${fmtWeek(now)}
+${todayGym}
 Semaine prochaine :
 ${fmtWeek(addDays(now, 7))}
 

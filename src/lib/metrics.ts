@@ -75,6 +75,30 @@ export function acwr(loads: { date: string; load: number }[], today: string): { 
 }
 
 /**
+ * Modèle forme / fatigue de Banister (impulsion-réponse), version moyennes exponentielles
+ * comme TrainingPeaks : forme (CTL, constante 42 j), fatigue (ATL, 7 j), fraîcheur = CTL − ATL de la veille.
+ * Limites connues : paramètres génériques, pas de plafond de performance. On l'utilise comme tendance.
+ */
+export function banister(loads: { date: string; load: number }[], from: string, to: string): { date: string; ctl: number; atl: number; tsb: number }[] {
+  const byDay = new Map<string, number>();
+  for (const l of loads) byDay.set(l.date.slice(0, 10), (byDay.get(l.date.slice(0, 10)) ?? 0) + l.load);
+  const days: string[] = [];
+  const start = new Date(`${from}T12:00:00Z`);
+  const end = new Date(`${to}T12:00:00Z`);
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) days.push(d.toISOString().slice(0, 10));
+  let ctl = 0, atl = 0;
+  const out = [];
+  for (const day of days) {
+    const tsb = ctl - atl;
+    const l = byDay.get(day) ?? 0;
+    ctl += (l - ctl) / 42;
+    atl += (l - atl) / 7;
+    out.push({ date: day, ctl: Math.round(ctl * 10) / 10, atl: Math.round(atl * 10) / 10, tsb: Math.round(tsb * 10) / 10 });
+  }
+  return out;
+}
+
+/**
  * 1RM estimé : Epley avec les répétitions en réserve (approche RIR, Helms et al. 2016).
  * Fiable jusqu'à ~10 répétitions effectives.
  */

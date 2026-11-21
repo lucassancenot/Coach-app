@@ -3,10 +3,12 @@ import { requireAuth } from "@/lib/auth";
 import { aiEnabled } from "@/lib/coach";
 import { getAthlete, getTemplates, getWorkouts, MAIN_LIFTS } from "@/lib/data";
 import { asUnit, fromKg } from "@/lib/units";
-import { prettyDate } from "@/lib/dates";
+import { addDays, mondayOf, prettyDate, today } from "@/lib/dates";
+import { gymSessionFor } from "@/lib/plan";
 import { e1rm } from "@/lib/metrics";
 import { deleteWorkout } from "@/app/actions";
-import { LineSeries } from "@/components/charts";
+import { MuscleVolume, ProgressExplorer, type LiftPoint } from "@/components/interactive";
+import { MUSCLE, MUSCLE_GROUPS } from "@/lib/programs";
 import { CoachNote, PageTitle } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -16,16 +18,54 @@ export default async function SallePage({ searchParams }: { searchParams: Promis
   const { lift: liftParam, saved } = await searchParams;
   const [templates, workouts, athlete] = await Promise.all([getTemplates(), getWorkouts(365), getAthlete()]);
   const unit = asUnit(athlete.unit);
-  const lift = liftParam && MAIN_LIFTS.includes(liftParam) ? liftParam : MAIN_LIFTS[0];
+  const now = today();
+  const ctx = { hrMax: athlete.hrMax, vift: athlete.vift };
+  let next: { date: string; session: NonNullable<ReturnType<typeof gymSessionFor>> } | null = null;
+  for (let i = 0; i < 8 && !next; i++) {
+    const d = addDays(now, i);
+    const g = gymSessionFor(d, ctx);
+    const doneToday = workouts.some((w) => w.date === d && w.templateName === g?.title);
+    if (g && !doneToday) next = { date: d, session: g };
+  }
+  // Données de progression : une entrée par séance et par exercice (exercices chargés uniquement).
+  const progress: Record<string, LiftPoint[]> = {};
+  const bw = athlete.bodyWeight;
+  for (const w of [...workouts].reverse()) {
+    const byEx = new Map<string, typeof w.sets>();
+    for (const st of w.sets) byEx.set(st.exercise, [...(byEx.get(st.exercise) ?? []), st]);
+    for (const [ex, ss] of byEx) {
+      const lest = ex === "Tractions lestées" || ex === "Dips";
+      if (!lest && ss.every((x) => x.weight === 0)) continue;
+      const bestSet = ss.reduce((a, b) => (e1rm(b.weight, b.reps, b.rir) > e1rm(a.weight, a.reps, a.rir) ? b : a));
+      const e = Math.max(...ss.map((x) => e1rm(x.weight + (lest ? bw : 0), x.reps, x.rir))) - (lest ? bw : 0);
+      (progress[ex] ??= []).push({
+        date: w.date,
+        e1rm: fromKg(e, unit),
+        top: fromKg(Math.max(...ss.map((x) => x.weight)), unit),
+        volume: Math.round(ss.reduce((acc, x) => acc + fromKg(x.weight, unit) * x.reps, 0)),
+        best: `${fromKg(bestSet.weight, unit)}×${bestSet.reps}`,
+      });
+    }
+  }
+  // Ordre : exercices de base d'abord, puis les plus fréquents.
+  const ordered: Record<string, LiftPoint[]> = {};
+  for (const ex of [...MAIN_LIFTS, ...Object.keys(progress).sort((a, b) => progress[b].length - progress[a].length)]) {
+    if (progress[ex] && !ordered[ex]) ordered[ex] = progress[ex];
+  }
 
-  const series = [...workouts]
-    .reverse()
-    .map((w) => {
-      const s = w.sets.filter((x) => x.exercise === lift);
-      if (!s.length) return null;
-      return { label: `${Number(w.date.slice(8, 10))}/${Number(w.date.slice(5, 7))}`, value: fromKg(Math.max(...s.map((x) => e1rm(x.weight, x.reps, x.rir))), unit) };
-    })
-    .filter((x): x is { label: string; value: number } => x != null);
+  // Séries par groupe musculaire, 12 dernières semaines.
+  const weekStarts = Array.from({ length: 12 }, (_, i) => addDays(mondayOf(now), -7 * (11 - i)));
+  const muscleWeeks = weekStarts.map((ws) => {
+    const row: Record<string, number | string> = { label: `${Number(ws.slice(8, 10))}/${Number(ws.slice(5, 7))}` };
+    for (const g of MUSCLE_GROUPS) row[g] = 0;
+    for (const w of workouts.filter((x) => x.date >= ws && x.date < addDays(ws, 7))) {
+      for (const st of w.sets) {
+        const g = MUSCLE[st.exercise];
+        if (g) row[g] = (row[g] as number) + 1;
+      }
+    }
+    return row;
+  });
 
   const records = MAIN_LIFTS.map((ex) => {
     const all = workouts.flatMap((w) => w.sets.filter((s) => s.exercise === ex).map((s) => ({ ...s, date: w.date })));
@@ -44,6 +84,26 @@ export default async function SallePage({ searchParams }: { searchParams: Promis
         </p>
       )}
 
+      {next && (
+        <section className="card mb-4 !border-gym">
+          <p className="label">Programme du coach · {next.date === now ? "aujourd'hui" : prettyDate(next.date)}</p>
+          <h2 className="mt-1 text-lg font-bold">{next.session.title}</h2>
+          <p className="mt-1 text-sm text-text-2">{next.session.focus}</p>
+          <ul className="mt-2 space-y-0.5 text-sm text-text-2">
+            {next.session.items.map((i) => (
+              <li key={i.exercise}>
+                <span className="text-text">{i.exercise}</span> {i.sets}×{i.reps}
+                {i.type !== "plyo" && ` @RIR${i.rir}`}
+              </li>
+            ))}
+          </ul>
+          <Link href={`/salle/seance?date=${next.date}`} className="btn btn-primary mt-3 w-full">
+            {next.date === now ? "Démarrer la séance" : "Faire cette séance maintenant"}
+          </Link>
+        </section>
+      )}
+
+      <p className="label mb-2">Séances libres (tes anciens modèles)</p>
       <section className="mb-4 grid grid-cols-2 gap-2">
         {templates.map((t) => (
           <Link key={t.id} href={`/salle/seance?template=${encodeURIComponent(t.name)}`} className="card block active:bg-surface-2">
@@ -55,16 +115,14 @@ export default async function SallePage({ searchParams }: { searchParams: Promis
       </section>
 
       <section className="card mb-4">
-        <p className="label">1RM estimé</p>
-        <div className="my-2 flex flex-wrap gap-1">
-          {MAIN_LIFTS.map((l) => (
-            <Link key={l} href={`/salle?lift=${encodeURIComponent(l)}`} className={`rounded-full px-3 py-1 text-xs ${l === lift ? "bg-gym text-white" : "bg-surface-2 text-text-2"}`}>
-              {l}
-            </Link>
-          ))}
-        </div>
-        {series.length >= 2 ? <LineSeries data={series} color="var(--gym)" unit={unit} /> : <p className="py-6 text-center text-sm text-muted">Pas encore assez de séances pour {lift}.</p>}
-        <p className="text-[11px] text-muted">Epley corrigé par le RIR (Helms 2016). Fiable jusqu&apos;à ~10 répétitions effectives.</p>
+        <p className="label mb-2">Progression</p>
+        <ProgressExplorer data={ordered} unit={unit} initial={liftParam} />
+        <p className="mt-1 text-[11px] text-muted">1RM estimé : Epley corrigé par le RIR (Helms 2016), fiable jusqu&apos;à ~10 répétitions. Glisse la barre du bas pour zoomer.</p>
+      </section>
+
+      <section className="card mb-4">
+        <p className="label mb-2">Volume par groupe musculaire</p>
+        <MuscleVolume weeks={muscleWeeks} groups={MUSCLE_GROUPS} />
       </section>
 
       {records.length > 0 && (

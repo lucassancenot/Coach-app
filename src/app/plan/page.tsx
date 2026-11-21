@@ -185,7 +185,14 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
           </div>
         )}
         {selSessions.map((s, i) => (
-          <SessionCard key={i} s={s} done={isDone(s, selected, acts, workouts)} />
+          <div key={i} className="space-y-2">
+            <SessionCard s={s} done={isDone(s, selected, acts, workouts)} />
+            {s.kind === "gym" && selected >= now && (
+              <Link href={`/salle/seance?date=${selected}`} className="btn w-full text-sm">
+                Voir les exercices et les charges
+              </Link>
+            )}
+          </div>
         ))}
         {error && <p className="text-xs text-warn">▲ {error}</p>}
         {!athlete.calendarUrl && (
