@@ -150,7 +150,7 @@ export function ProgressExplorer({ data, unit, initial }: { data: Record<string,
       {series.length >= 2 ? (
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={series} margin={{ top: 10, right: 8, left: -14, bottom: 0 }}>
+            <LineChart data={series} margin={{ top: 10, right: 8, left: -4, bottom: 0 }}>
               <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
               <XAxis dataKey="date" tickFormatter={dm} {...axis} minTickGap={24} />
               <YAxis {...axis} width={48} domain={["auto", "auto"]} />
@@ -183,7 +183,7 @@ export function MuscleVolume({ weeks, groups }: { weeks: Record<string, number |
       <Toggles items={items} hidden={hidden} onToggle={toggle} />
       <div className="mt-2 h-56">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={weeks} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+          <BarChart data={weeks} margin={{ top: 8, right: 4, left: -6, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis dataKey="label" {...axis} minTickGap={16} />
             <YAxis {...axis} width={40} allowDecimals={false} />
@@ -238,7 +238,7 @@ export function FitnessChart({ data }: { data: { date: string; ctl: number; atl:
       )}
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={series} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+          <ComposedChart data={series} margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis dataKey="date" tickFormatter={dm} {...axis} minTickGap={28} />
             <YAxis {...axis} width={40} />
@@ -270,7 +270,7 @@ export function ZoneWeeks({ weeks }: { weeks: { label: string; z1: number; z2: n
       <Toggles items={items} hidden={hidden} onToggle={toggle} />
       <div className="mt-2 h-52">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={weeks} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+          <BarChart data={weeks} margin={{ top: 8, right: 4, left: -6, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis dataKey="label" {...axis} minTickGap={16} />
             <YAxis {...axis} width={40} />
@@ -301,7 +301,7 @@ export function TimeSeries({ data, unit, color, label }: { data: { date: string;
       </div>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={series} margin={{ top: 8, right: 8, left: -14, bottom: 0 }}>
+          <LineChart data={series} margin={{ top: 8, right: 8, left: -4, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis dataKey="date" tickFormatter={dm} {...axis} minTickGap={24} />
             <YAxis {...axis} width={44} domain={["auto", "auto"]} />

@@ -12,7 +12,7 @@ export function BarSeries({ data, color, unit }: { data: { label: string; value:
   return (
     <div className="h-44">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+        <BarChart data={data} margin={{ top: 8, right: 4, left: -6, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
           <XAxis dataKey="label" {...axis} interval="preserveStartEnd" />
           <YAxis {...axis} width={44} />
@@ -38,7 +38,7 @@ export function LineSeries({
   return (
     <div className="h-44">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
           <XAxis dataKey="label" {...axis} interval="preserveStartEnd" />
           <YAxis {...axis} width={44} domain={domain ?? ["auto", "auto"]} />

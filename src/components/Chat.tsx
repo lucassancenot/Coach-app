@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { clearChat, sendChat } from "@/app/actions";
+import Markdown from "./Markdown";
 
 interface Msg {
   id: number;
@@ -64,7 +65,13 @@ export default function Chat({ initial, enabled }: { initial: Msg[]; enabled: bo
         )}
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "bg-run text-white" : "border border-border bg-surface text-text"}`}>{m.content}</div>
+            {m.role === "user" ? (
+              <div className="max-w-[85%] whitespace-pre-line rounded-2xl bg-run px-4 py-2.5 text-sm text-white">{m.content}</div>
+            ) : (
+              <div className="w-full max-w-[95%] rounded-2xl border border-border bg-surface px-4 py-3">
+                <Markdown text={m.content} />
+              </div>
+            )}
           </div>
         ))}
         {pending && <p className="text-sm text-muted">Le coach analyse tes données…</p>}

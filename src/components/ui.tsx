@@ -1,5 +1,6 @@
 import type { Session } from "@/lib/plan";
 import { dismissAlert } from "@/app/actions";
+import Markdown from "./Markdown";
 
 export function PageTitle({ title, subtitle, right }: { title: string; subtitle?: string; right?: React.ReactNode }) {
   return (
@@ -106,9 +107,9 @@ export function ZoneBar({ zoneSeconds }: { zoneSeconds: number[] }) {
 
 export function CoachNote({ text }: { text: string }) {
   return (
-    <div className="mt-3 rounded-xl border border-border bg-surface-2 p-3 text-sm text-text-2 whitespace-pre-line">
+    <div className="mt-3 rounded-xl border border-border bg-surface-2 p-3">
       <p className="label mb-1 !text-[10px]">Coach</p>
-      {text}
+      <Markdown text={text} />
     </div>
   );
 }
